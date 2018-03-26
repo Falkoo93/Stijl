@@ -92,10 +92,17 @@ void f_receiveFromMon(void *arg) {
     printf("%s : waiting for sem_serverOk\n", info.name);
 #endif
     rt_sem_p(&sem_serverOk, TM_INFINITE);
+ #ifdef _WITH_TRACE_
+    printf("Changing Etat Communication to 1\n");
+#endif 
+    rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
+    etat_communication = 1;
+    rt_mutex_release(&mutex_etat_communication);
     do {
 #ifdef _WITH_TRACE_
         printf("%s : waiting for a message from monitor\n", info.name);
 #endif
+        
         err = receive_message_from_monitor(msg.header, msg.data);
 #ifdef _WITH_TRACE_
         printf("%s: msg {header:%s,data=%s} received from UI\n", info.name, msg.header, msg.data);
@@ -108,7 +115,7 @@ void f_receiveFromMon(void *arg) {
                 rt_sem_v(&sem_openComRobot);
             }
         } else if (strcmp(msg.header, HEADER_MTS_DMB_ORDER) == 0) {
-            if (msg.data[0] == DMB_START_WITHOUT_WD) { // Start robot
+            if ((msg.data[0] == DMB_START_WITHOUT_WD)||(msg.data[0] == DMB_START_WITH_WD)) { // Start robot
 #ifdef _WITH_TRACE_
                 printf("%s: message start robot\n", info.name);
 #endif 
@@ -128,7 +135,16 @@ void f_receiveFromMon(void *arg) {
 #endif
 
             }
-        }
+        } else if (strcmp(msg.header, HEADER_MTS_CAMERA) == 0) {
+            if (msg.data[0] == CAM_OPEN) { 
+                rt_sem_v(&sem_connexionCamera);
+            } else if (msg.data[0] == CAM_ASK_ARENA) {
+                rt_sem_v(&sem_arena);
+            } else if (msg.data[0] == CAM_COMPUTE_POSITION) {
+                rt_sem_v(&sem_position);
+            }
+        }    
+        
     } while (err > 0);
 
 }
