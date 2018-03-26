@@ -26,6 +26,8 @@ RT_TASK th_openComRobot;
 RT_TASK th_startRobot;
 RT_TASK th_move;
 RT_TASK th_niveauBatterie;
+RT_TASK th_camera;
+RT_TASK th_image;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -35,7 +37,10 @@ int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TNIVEAUBATTERIE = 5;
+int PRIORITY_TCAMERA = 5;
+int PRIORITY_TIMAGE = 5;
 
+RT_MUTEX mutex_cameraStarted;
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 
@@ -44,6 +49,8 @@ RT_SEM sem_barrier;
 RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
+RT_SEM sem_position;
+RT_SEM sem_arena;
 
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
@@ -103,7 +110,11 @@ void initStruct(void) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-
+    if (err = rt_mutex_create(&mutex_cameraStarted, NULL)) {   // rajoutéJ
+    printf("Error mutex create: %s\n", strerror(-err));
+    exit(EXIT_FAILURE);
+    }
+        
     /* Creation du semaphore */
     if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
         printf("Error semaphore create: %s\n", strerror(-err));
@@ -118,6 +129,14 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
     if (err = rt_sem_create(&sem_startRobot, NULL, 0, S_FIFO)) {
+        printf("Error semaphore create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_position, NULL, 0, S_FIFO)) {   // rajoutéJ
+        printf("Error semaphore create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_arena, NULL, 0, S_FIFO)) {   // rajoutéJ
         printf("Error semaphore create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
