@@ -1,5 +1,5 @@
 #include "robot.h"
-//ininibtfctht
+//ininibtfctht //remi est moche
 int fd;
 
 int getChar(char * c);
