@@ -43,6 +43,7 @@ int PRIORITY_TIMAGE = 5;
 RT_MUTEX mutex_cameraStarted;
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
+RT_MUTEX mutex_etat_communication;
 
 // Déclaration des sémaphores
 RT_SEM sem_barrier;
@@ -60,6 +61,7 @@ int MSG_QUEUE_SIZE = 10;
 // Déclaration des ressources partagées
 int etatCommMoniteur = 1;
 int robotStarted = 0;
+int etat_communication = 0;
 char move = DMB_STOP_MOVE;
 
 /**
@@ -111,10 +113,13 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
     if (err = rt_mutex_create(&mutex_cameraStarted, NULL)) {   // rajoutéJ
-    printf("Error mutex create: %s\n", strerror(-err));
-    exit(EXIT_FAILURE);
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
     }
-        
+     if (err = rt_mutex_create(&mutex_etat_communication, NULL)) {
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+     }   
     /* Creation du semaphore */
     if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
         printf("Error semaphore create: %s\n", strerror(-err));
@@ -147,7 +152,6 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    //--------------------------------------------------------------------------------
     if (err = rt_task_create(&th_server, "th_server", 0, PRIORITY_TSERVER, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
