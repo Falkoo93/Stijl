@@ -1,5 +1,5 @@
 #include "robot.h"
-
+//ininibtfctht
 int fd;
 
 int getChar(char * c);
