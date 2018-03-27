@@ -22,6 +22,25 @@ void f_niveauBatterie (void *arg)
 }
 //------------------------------------------------------------------------------
 
+void f_perte_info(void *arg){
+	RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+	while(1){
+		rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
+		if(etat_communication == 1) {
+			rt_mutex_release(&mutex_etat_communication);
+		} else {
+			rt_mutex_release(&mutex_etat_communication);
+			MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_ACK);
+            write_in_queue(&q_messageToMon, msg);
+			kill_nodejs();
+			close_server();
+			printf("Nodejs is lost\n");
+		}		
+	}	
+}
 
 void f_server(void *arg) {
     int err;
@@ -62,7 +81,7 @@ void f_sendToMon(void * arg) {
 #ifdef _WITH_TRACE_
     printf("Changing Etat Communication to 1\n");
 #endif
-    rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
+	rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
     etat_communication = 1;
     rt_mutex_release(&mutex_etat_communication);
     while (1) {
