@@ -59,6 +59,12 @@ void f_sendToMon(void * arg) {
     printf("%s : waiting for sem_serverOk\n", info.name);
 #endif
     rt_sem_p(&sem_serverOk, TM_INFINITE);
+#ifdef _WITH_TRACE_
+    printf("Changing Etat Communication to 1\n");
+#endif
+	rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
+    etat_communication = 1;
+    rt_mutex_release(&mutex_etat_communication);
     while (1) {
 
 #ifdef _WITH_TRACE_
@@ -92,7 +98,7 @@ void f_receiveFromMon(void *arg) {
     printf("%s : waiting for sem_serverOk\n", info.name);
 #endif
     rt_sem_p(&sem_serverOk, TM_INFINITE);
- #ifdef _WITH_TRACE_
+#ifdef _WITH_TRACE_
     printf("Changing Etat Communication to 1\n");
 #endif 
     rt_mutex_acquire(&mutex_etat_communication, TM_INFINITE);
