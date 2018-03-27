@@ -28,6 +28,7 @@ RT_TASK th_move;
 RT_TASK th_niveauBatterie;
 RT_TASK th_camera;
 RT_TASK th_image;
+RT_TASK th_perte_info;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -39,6 +40,7 @@ int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TNIVEAUBATTERIE = 5;
 int PRIORITY_TCAMERA = 5;
 int PRIORITY_TIMAGE = 5;
+int PRIORITY_TPERTEINFO = 5;
 
 RT_MUTEX mutex_cameraStarted;
 RT_MUTEX mutex_robotStarted;
@@ -176,6 +178,10 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+	if (err = rt_task_create(&th_perte_info, "th_perte_info", 0, PRIORITY_TPERTEINFO, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 
     /* Creation des files de messages */
     if (err = rt_queue_create(&q_messageToMon, "toto", MSG_QUEUE_SIZE * sizeof (MessageToRobot), MSG_QUEUE_SIZE, Q_FIFO)) {
@@ -215,6 +221,10 @@ void startTasks() {
         exit(EXIT_FAILURE);
     }
     if (err = rt_task_start(&th_server, &f_server, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_start(&th_perte_info, &f_perte_info, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
