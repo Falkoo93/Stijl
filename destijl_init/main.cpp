@@ -38,11 +38,11 @@ int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TNIVEAUBATTERIE = 5;
-int PRIORITY_TCAMERA = 5;
-int PRIORITY_TIMAGE = 5;
+int PRIORITY_TCAMERA = 5;		// rajoutéJ
+int PRIORITY_TIMAGE = 5;		// rajoutéJ
 int PRIORITY_TPERTEINFO = 5;
 
-RT_MUTEX mutex_cameraStarted;
+RT_MUTEX mutex_cameraStarted;		// rajoutéJ
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_etat_communication;
@@ -52,8 +52,9 @@ RT_SEM sem_barrier;
 RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
-RT_SEM sem_position;
-RT_SEM sem_arena;
+RT_SEM sem_position;			// rajoutéJ
+RT_SEM sem_arena;			// rajoutéJ
+RT_SEM sem_connexionCamera;		// rajoutéJ
 
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
@@ -147,6 +148,10 @@ void initStruct(void) {
         printf("Error semaphore create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_sem_create(&sem_connexionCamera, NULL, 0, S_FIFO)) {   // rajoutéJ
+        printf("Error semaphore create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 
     /* Creation des taches */
     //-----------------------------------------------------------------------------------
@@ -179,6 +184,14 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
 	if (err = rt_task_create(&th_perte_info, "th_perte_info", 0, PRIORITY_TPERTEINFO, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_create(&th_image, "th_image", 0, PRIORITY_TIMAGE, 0)) {		// rajoutéJ
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+	if (err = rt_task_create(&th_camera, "th_camera", 0, PRIORITY_TCAMERA, 0)) {		// rajoutéJ
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -225,6 +238,14 @@ void startTasks() {
         exit(EXIT_FAILURE);
     }
 	if (err = rt_task_start(&th_perte_info, &f_perte_info, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_camera, &f_camera, NULL)) {			//rajoutéJ
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_image, &f_image, NULL)) {			//rajoutéJ
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
