@@ -8,17 +8,22 @@ void write_in_queue(RT_QUEUE *, MessageToMon);
 //------------------------------------------------------------------------------
 void f_niveauBatterie (void *arg)
 {
-    int err;
-    int tensionBatterie;
-    
-    /* INIT */
-    RT_TASK_INFO info;
-    rt_task_inquire(NULL, &info);
-    printf("Init %s\n", info.name);
-    rt_sem_p(&sem_barrier, TM_INFINITE);
-    
-    tensionBatterie=send_command_to_robot(DMB_GET_VBAT);
-    //rajouter l'envoi de cette info au moniteur (voir dossier de conception)
+	int tensionBatterie;
+	MessageToMon msg;
+ 
+	RT_TASK_INFO info;
+	rt_task_inquire(NULL, &info);
+	printf("Init %s\n", info.name);
+	rt_sem_p(&sem_barrier, TM_INFINITE);
+	while(1){
+   	 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+   	 	if(robotStarted == 1){
+   	 rt_mutex_release(&mutex_robotStarted);
+   	 tensionBatterie=send_command_to_robot(DMB_GET_VBAT);
+  		 set_msgToMon_header(&msg, HEADER_STM_ACK);
+   		 write_in_queue(&q_messageToMon, msg);
+		}
+	}
 }
 //------------------------------------------------------------------------------
 
