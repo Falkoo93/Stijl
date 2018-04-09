@@ -15,12 +15,17 @@ void f_niveauBatterie (void *arg)
 	rt_task_inquire(NULL, &info);
 	printf("Init %s\n", info.name);
 	rt_sem_p(&sem_barrier, TM_INFINITE);
+	/* PERIODIC START */
+    #ifdef _WITH_TRACE_
+   	 printf("%s: start period\n", info.name);
+    #endif
+   	 rt_task_set_periodic(NULL, TM_NOW, 5000000);
 	while(1){
    	 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
    	 	if(robotStarted == 1){
    	 rt_mutex_release(&mutex_robotStarted);
    	 tensionBatterie=send_command_to_robot(DMB_GET_VBAT);
-  		 set_msgToMon_header(&msg, HEADER_STM_ACK);
+  		 set_msgToMon_header(&msg, HEADER_STM_BAT);
    		 write_in_queue(&q_messageToMon, msg);
 		}
 	}
