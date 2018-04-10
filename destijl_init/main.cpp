@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   main.c
  * Author: pehladik
  *
@@ -38,23 +38,25 @@ int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TNIVEAUBATTERIE = 5;
-int PRIORITY_TCAMERA = 5;		// rajoutéJ
-int PRIORITY_TIMAGE = 5;		// rajoutéJ
+int PRIORITY_TCAMERA = 5;        // rajoutéJ
+int PRIORITY_TIMAGE = 5;        // rajoutéJ
 int PRIORITY_TPERTEINFO = 5;
 
-RT_MUTEX mutex_cameraStarted;		// rajoutéJ
+RT_MUTEX mutex_cameraStarted;        // rajoutéJ
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_etat_communication;
+RT_MUTEX mutex_calculPosition;
+RT_MUTEX mutex_demandeArene;
 
 // Déclaration des sémaphores
 RT_SEM sem_barrier;
 RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
-RT_SEM sem_position;			// rajoutéJ
-RT_SEM sem_arena;			// rajoutéJ
-RT_SEM sem_connexionCamera;		// rajoutéJ
+RT_SEM sem_position;            // rajoutéJ
+RT_SEM sem_arena;            // rajoutéJ
+RT_SEM sem_connexionCamera;        // rajoutéJ
 
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
@@ -64,12 +66,15 @@ int MSG_QUEUE_SIZE = 10;
 // Déclaration des ressources partagées
 int etatCommMoniteur = 1;
 int robotStarted = 0;
+int cameraStarted =0;
 int etat_communication = 0;
+int calculPosition=0;
+int demandeArena=0;
 char move = DMB_STOP_MOVE;
 
 /**
  * \fn void initStruct(void)
- * \brief Initialisation des structures de l'application (tâches, mutex, 
+ * \brief Initialisation des structures de l'application (tâches, mutex,
  * semaphore, etc.)
  */
 void initStruct(void);
@@ -119,6 +124,16 @@ void initStruct(void) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_mutex_create(&mutex_calculPosition, NULL)) {   // rajoutéJ
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+     if (err = rt_mutex_create(&mutex_demandeArena, NULL)) {   // rajoutéJ
+        printf("Error mutex create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+
+
      if (err = rt_mutex_create(&mutex_etat_communication, NULL)) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
@@ -183,15 +198,15 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-	if (err = rt_task_create(&th_perte_info, "th_perte_info", 0, PRIORITY_TPERTEINFO, 0)) {
+    if (err = rt_task_create(&th_perte_info, "th_perte_info", 0, PRIORITY_TPERTEINFO, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-	if (err = rt_task_create(&th_image, "th_image", 0, PRIORITY_TIMAGE, 0)) {		// rajoutéJ
+    if (err = rt_task_create(&th_image, "th_image", 0, PRIORITY_TIMAGE, 0)) {        // rajoutéJ
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-	if (err = rt_task_create(&th_camera, "th_camera", 0, PRIORITY_TCAMERA, 0)) {		// rajoutéJ
+    if (err = rt_task_create(&th_camera, "th_camera", 0, PRIORITY_TCAMERA, 0)) {        // rajoutéJ
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -237,15 +252,15 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-	if (err = rt_task_start(&th_perte_info, &f_perte_info, NULL)) {
+    if (err = rt_task_start(&th_perte_info, &f_perte_info, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_camera, &f_camera, NULL)) {			//rajoutéJ
+    if (err = rt_task_start(&th_camera, &f_camera, NULL)) {            //rajoutéJ
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_image, &f_image, NULL)) {			//rajoutéJ
+    if (err = rt_task_start(&th_image, &f_image, NULL)) {            //rajoutéJ
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -256,3 +271,4 @@ void deleteTasks() {
     rt_task_delete(&th_openComRobot);
     rt_task_delete(&th_move);
 }
+
