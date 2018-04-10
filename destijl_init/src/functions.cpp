@@ -219,7 +219,7 @@ void f_openComRobot(void * arg) {
 
 void f_startRobot(void * arg) {
     int err;
-
+    
     /* INIT */
     RT_TASK_INFO info;
     rt_task_inquire(NULL, &info);
@@ -234,7 +234,9 @@ void f_startRobot(void * arg) {
 #ifdef _WITH_TRACE_
         printf("%s : sem_startRobot arrived => Start robot\n", info.name);
 #endif
-        err = send_command_to_robot(DMB_START_WITHOUT_WD);
+        err= send_command_to_robot(cmd);
+         if (strcmp(cmd, DMB_START_WITHOUT_WD) == 0) {
+        //err = send_command_to_robot(DMB_START_WITHOUT_WD);
         if (err == 0) {
 #ifdef _WITH_TRACE_
             printf("%s : the robot is started\n", info.name);
@@ -250,6 +252,66 @@ void f_startRobot(void * arg) {
             set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
             write_in_queue(&q_messageToMon, msg);
         }
+    }
+
+     else if (strcmp(cmd, DMB_START_WITH_WD) == 0) {
+        //err = send_command_to_robot(DMB_START_WITH_WD);
+        if (err == 0) {
+#ifdef _WITH_TRACE_
+            printf("%s : the robot is started\n", info.name);
+#endif
+            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            robotStarted = 1;
+            rt_mutex_release(&mutex_robotStarted);
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_ACK);
+            write_in_queue(&q_messageToMon, msg);
+            rt_sem_v(&sem_watchdog);
+
+        } else {
+            MessageToMon msg;
+            set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
+            write_in_queue(&q_messageToMon, msg);
+        }
+    }
+
+
+    }
+}
+
+
+void f_watchdog(void*arg){
+     RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_watchdog, TM_INFINITE);
+
+      /* PERIODIC START */
+#ifdef _WITH_TRACE_
+    printf("%s: start period\n", info.name);
+#endif
+    rt_task_set_periodic(NULL, TM_NOW, 100000000);
+     while (1) {
+#ifdef _WITH_TRACE_
+        printf("%s: Wait period \n", info.name);
+#endif
+        rt_task_wait_period(NULL);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        if (robotStarted) {
+            rt_mutex_acquire(&Cmpt, TM_INFINITE){
+            if (Cmpt<3){
+                Cmpt=Cmpt+1;
+                send_command_to_robot(DMB_RELOAD_WD);
+                
+            }
+            else {
+                send_command_to_robot(DMB_RELOAD_WD);
+            }
+            
+            rt_mutex_release(&mutex_Cmpt);
+            }
+        rt_mutex_release(&mutex_robotStarted);
+    }
     }
 }
 
@@ -274,17 +336,38 @@ void f_move(void *arg) {
         printf("%s: Periodic activation\n", info.name);
         printf("%s: move equals %c\n", info.name, move);
 #endif
+        rt_mutex_acquire(&mutex_Cmpt, TM_INFINITE);
+        if (Cmpt<3) {
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
+
+            
+#ifdef _WITH_TRACE_
+        printf("%s : sem_openComRobot arrived => open communication robot\n", info.name);
+#endif
+         err = open_communication_robot();
+        if (err == 0) {
+        send_command_to_robot(DMB_RELOAD_WD);
             rt_mutex_acquire(&mutex_move, TM_INFINITE);
             send_command_to_robot(move);
             rt_mutex_release(&mutex_move);
+        }
+        rt_mutex_release(&mutex_robotStarted);
 #ifdef _WITH_TRACE_
             printf("%s: the movement %c was sent\n", info.name, move);
 #endif            
         }
-        rt_mutex_release(&mutex_robotStarted);
+        else{
+            rt_sem_p(&sem_openComRobot, TM_INFINITE);
+            close_comunication_robot();
+            MessageToMon msg;
+            set_msgToMon_header(&msg, CLOSE_COM_DMB);
+            write_in_queue(&q_messageToMon, msg);
+
+        }
+        rt_mutex_release(&mutex_Cmpt);
     }
+}
 }
 
 void f_camera(void * arg)                         //RajoutéJ
