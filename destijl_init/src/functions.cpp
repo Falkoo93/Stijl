@@ -282,6 +282,106 @@ void f_move(void *arg) {
     }
 }
 
+void f_camera(void * arg)                         //RajoutéJ
+{
+    	int err;
+    	/* INIT */
+    	RT_TASK_INFO info;
+    	rt_task_inquire(NULL, &info);
+    	printf("Init %s\n", info.name);
+    	rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+    	rt_sem_p(&sem_connexionCamera, TM_INFINITE);
+    
+    	opencamera(Camera);
+    
+    	rt_mutex_acquire(&mutex_cameraStarted, TM_INFINITE);
+        cameraStarted=1;
+    	rt_mutex_release(&mutex_cameraStarted);
+}
+
+void f_image(void * arg)                         //RajoutéJ
+{
+    	int err;
+	MessageToMon msg;
+	int nbrTriangle=0
+		
+    	/* INIT */
+    	RT_TASK_INFO info;
+    	rt_task_inquire(NULL, &info);
+    	printf("Init %s\n", info.name);
+    	rt_sem_p(&sem_barrier, TM_INFINITE);
+	
+	/* PERIODIC START */
+	#ifdef _WITH_TRACE_
+    	printf("%s: start period\n", info.name);
+	#endif
+    	rt_task_set_periodic(NULL, TM_NOW, 1000000); //temps en tic d'horlogo = ns???????
+	
+	if(cameraStarted==1)
+	{
+		if(calculPosition==1)
+		{
+			nbrtriangle=detect_position(imgInput, posTriangle, monArene);
+			if(nbrtriangle==1)
+			{
+				draw_position(imgInput,imgOutput,positionRobot); 
+				set_msgToMon_header(&msg, HEADER_STM_POS);
+			}
+			else
+			{
+				posrobot=(-1,-1)///////////////A CHANGER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				set_msgToMon_header(&msg, HEADER_STM_POS);
+			}
+		}
+		else if(calculPosition==0)
+		{
+			get_image(camera,monImage,fichier);
+			if(demandeArene==0)
+			{
+				compress_image(imgInput,imageCompress);
+				set_msgToMon_header(&msg, HEADER_STM_IMAGE);
+			}
+			else if(demandeArene==1)
+			{
+				err=detect_arena(Image *monImage, Arene *rectangle)
+				if(err=0)
+				{
+					draw_arena(imgInput,imgOutput,monArene);
+					compress_image(imgInput,imageCompress);
+					set_msgToMon_header(&msg, HEADER_STM_IMAGE);
+				}
+				else if(err=-1)
+				{
+					compress_image(imgInput,imageCompress);
+					set_msgToMon_header(&msg, HEADER_STM_IMAGE);
+				}
+				
+				///////////////////A CHANGER//////////////////////////////
+				if(validation_utilisateur???????)
+				{
+					save(????????????????????????)
+					rt_mutex_acquire(&mutex_cameraStarted, TM_INFINITE);
+        				demandeArene=0;//pour repasser dans le mode d'envoie normal périodique d'image
+    					rt_mutex_release(&mutex_cameraStarted);
+				}
+				else if(pas validation_utilisateur???????)
+				{
+					delete(????????????????????????)
+				}
+				//////////////////////////////////////////////////////////
+					
+			}
+		}
+		
+		
+	}
+	
+	
+    
+}
+
+
 void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
     void *buff;
     buff = rt_queue_alloc(&q_messageToMon, sizeof (MessageToMon));
