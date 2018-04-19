@@ -43,7 +43,7 @@ void f_perte_info(void *arg){
 		} else {
 			rt_mutex_release(&mutex_etat_communication);
 			MessageToMon msg;
-            set_msgToMon_header(&msg, HEADER_STM_ACK);
+            set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
             write_in_queue(&q_messageToMon, msg);
 			kill_nodejs();
 			close_server();
