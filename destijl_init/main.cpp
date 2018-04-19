@@ -1,4 +1,4 @@
-/*
+/* 
  * File:   main.c
  * Author: pehladik
  *
@@ -26,10 +26,7 @@ RT_TASK th_openComRobot;
 RT_TASK th_startRobot;
 RT_TASK th_move;
 RT_TASK th_niveauBatterie;
-RT_TASK th_camera;
-RT_TASK th_image;
 RT_TASK th_perte_info;
-RT_TASK th_watchdog;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -38,18 +35,15 @@ int PRIORITY_TMOVE = 10;
 int PRIORITY_TSENDTOMON = 25;
 int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
-int PRIORITY_TNIVEAUBATTERIE = 5;
-int PRIORITY_TCAMERA = 5;        // rajoutéJ
-int PRIORITY_TIMAGE = 5;        // rajoutéJ
-int PRIORITY_TPERTEINFO = 5;
-int PRIORITY_TWATCHDOG = 5;
+int PRIORITY_TNIVEAUBATTERIE = 18;
+int PRIORITY_TPERTEINFO = 40;
 
 RT_MUTEX mutex_cameraStarted;        // rajoutéJ
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_etat_communication;
 RT_MUTEX mutex_calculPosition;
-RT_MUTEX mutex_demandeArene;
+RT_MUTEX mutex_demandeArena;
 RT_MUTEX mutex_Cmpt;
 
 // Déclaration des sémaphores
@@ -57,6 +51,7 @@ RT_SEM sem_barrier;
 RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
+RT_SEM sem_pertInfo; //pas besoin
 RT_SEM sem_position;            // rajoutéJ
 RT_SEM sem_arena;            // rajoutéJ
 RT_SEM sem_connexionCamera;        // rajoutéJ
@@ -71,7 +66,7 @@ int MSG_QUEUE_SIZE = 10;
 int etatCommMoniteur = 1;
 int robotStarted = 0;
 int cameraStarted =0;
-int etat_communication = 0;
+int etat_communication = 1;
 int calculPosition=0;
 int demandeArena=0;
 char move = DMB_STOP_MOVE;
@@ -79,7 +74,7 @@ int Cmpt = 0;
 
 /**
  * \fn void initStruct(void)
- * \brief Initialisation des structures de l'application (tâches, mutex,
+ * \brief Initialisation des structures de l'application (tâches, mutex, 
  * semaphore, etc.)
  */
 void initStruct(void);
@@ -133,12 +128,12 @@ void initStruct(void) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
-     if (err = rt_mutex_create(&mutex_demandeArena, NULL)) {   // rajoutéJ
+    if (err = rt_mutex_create(&mutex_demandeArena, NULL)) {   // rajoutéJ
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
 
-       if (err = rt_mutex_create(&mutex_Cmpt, NULL)) {
+    if (err = rt_mutex_create(&mutex_Cmpt, NULL)) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -147,6 +142,7 @@ void initStruct(void) {
         printf("Error mutex create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
      }   
+
     /* Creation du semaphore */
     if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
         printf("Error semaphore create: %s\n", strerror(-err));
@@ -181,12 +177,8 @@ void initStruct(void) {
         printf("Error semaphore create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
 }
+
     /* Creation des taches */
-    //-----------------------------------------------------------------------------------
-    if (err = rt_task_create(&th_niveauBatterie, "th_niveauBatterie", 0, PRIORITY_TNIVEAUBATTERIE, 0)) {
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
     if (err = rt_task_create(&th_server, "th_server", 0, PRIORITY_TSERVER, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
@@ -211,20 +203,11 @@ void initStruct(void) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_niveauBatterie, "th_niveauBatterie", 0, PRIORITY_TNIVEAUBATTERIE, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
     if (err = rt_task_create(&th_perte_info, "th_perte_info", 0, PRIORITY_TPERTEINFO, 0)) {
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_task_create(&th_image, "th_image", 0, PRIORITY_TIMAGE, 0)) {        // rajoutéJ
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_task_create(&th_camera, "th_camera", 0, PRIORITY_TCAMERA, 0)) {        // rajoutéJ
-        printf("Error task create: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    
-    if (err = rt_task_create(&th_watchdog, "th_watchdog", 0, PRIORITY_TWATCHDOG, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -234,16 +217,12 @@ void initStruct(void) {
         printf("Error msg queue create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    
 }
 
 void startTasks() {
 
     int err;
-    
-    if (err = rt_task_start(&th_niveauBatterie, &f_niveauBatterie, NULL)) {
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
     
     if (err = rt_task_start(&th_startRobot, &f_startRobot, NULL)) {
         printf("Error task start: %s\n", strerror(-err));
@@ -270,20 +249,12 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+   
+    if (err = rt_task_start(&th_niveauBatterie, &f_niveauBatterie, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
     if (err = rt_task_start(&th_perte_info, &f_perte_info, NULL)) {
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_task_start(&th_camera, &f_camera, NULL)) {            //rajoutéJ
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_task_start(&th_image, &f_image, NULL)) {            //rajoutéJ
-        printf("Error task start: %s\n", strerror(-err));
-        exit(EXIT_FAILURE);
-    }
-    
-    if (err = rt_task_start(&th_watchdog, &f_watchdog, NULL)) {            //rajoutéJ
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -294,4 +265,3 @@ void deleteTasks() {
     rt_task_delete(&th_openComRobot);
     rt_task_delete(&th_move);
 }
-

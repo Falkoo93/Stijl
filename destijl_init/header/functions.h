@@ -36,23 +36,34 @@ extern RT_TASK th_receiveFromMon;
 extern RT_TASK th_openComRobot;
 extern RT_TASK th_startRobot;
 extern RT_TASK th_move;
-extern RT_TASK th_watchdog;
+extern RT_TASK th_niveauBatterie;
 
-
+extern RT_MUTEX mutex_cameraStarted;        // rajoutéJ
 extern RT_MUTEX mutex_robotStarted;
 extern RT_MUTEX mutex_move;
-extern RT_MUTEX mutex_CMPT
+extern RT_MUTEX mutex_etat_communication;
+extern RT_MUTEX mutex_calculPosition;
+extern RT_MUTEX mutex_demandeArena;
+extern RT_MUTEX mutex_Cmpt;
 
 extern RT_SEM sem_barrier;
 extern RT_SEM sem_openComRobot;
 extern RT_SEM sem_serverOk;
 extern RT_SEM sem_startRobot;
+extern RT_SEM sem_pertInfo;
+extern RT_SEM sem_position;            // rajoutéJ
+extern RT_SEM sem_arena;            // rajoutéJ
+extern RT_SEM sem_connexionCamera;        // rajoutéJ
 extern RT_SEM sem_watchdog;
 
 extern RT_QUEUE q_messageToMon;
 
 extern int etatCommMoniteur;
 extern int robotStarted;
+extern int cameraStarted;
+extern int etat_communication;
+extern int calculPosition;
+extern int demandeArena;
 extern char move;
 extern int Cmpt;
 
@@ -64,7 +75,8 @@ extern int PRIORITY_TMOVE;
 extern int PRIORITY_TSENDTOMON;
 extern int PRIORITY_TRECEIVEFROMMON;
 extern int PRIORITY_TSTARTROBOT;
-extern int PRIORITY_TWATCHDOG;
+extern int PRIORITY_TNIVEAUBATTERIE ;
+extern int PRIORITY_TPERTEINFO ;
 
 void f_server(void *arg);
 void f_sendToMon(void *arg);
@@ -74,7 +86,6 @@ void f_move(void *arg);
 void f_startRobot(void *arg);
 void f_niveauBatterie (void *arg);
 void f_perte_info (void *arg);
-void f_watchdog(void*arg);
 
 #endif /* FUNCTIONS_H */
 
